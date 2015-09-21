@@ -1,0 +1,16 @@
+"animal_type","body_part_type","animal_count"
+"Bird","body without head",56
+"Bird","head & others",1
+"Bird","head and body",33
+"Bird","not specified",12
+"Bird","whole body",3
+"Mammal","body without head",5
+"Mammal","head",13
+"Mammal","head & others",2
+"Mammal","head and body",3
+"Mammal","whole body",6
+"Reptile","body without head",1
+"Unknown","body without head",1
+"Unknown","head",3
+"Unknown","head and body",2
+"Unknown","not specified",5

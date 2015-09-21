@@ -1,5 +1,9 @@
 library(data.table)
 library(ggplot2)
+library(maps)
+library(RColorBrewer)
+library(ggmap)
+library(RgoogleMaps)
 
 # STEP 01: Import data --------------------------------------------------------
 dat <- data.table(read.csv("data/base/animals.csv", stringsAsFactors = F))
@@ -101,30 +105,75 @@ dat_v1$body_part_type <- ifelse(dat_v1$body_part_found %in% c("Head & Rib Cage",
                                 "Head & Others", dat_v1$body_part_found)
 dat_v1$body_part_type <- tolower(dat_v1$body_part_type)
 
+dat_v1$animal_type <- as.factor(dat_v1$animal_type)
+dat_v1$body_part_type <- as.factor(dat_v1$body_part_type)
+
+write.csv(dat_v1, "data/processed/dat_v1.csv", row.names = F)
+
 # STEP 03: Visualize ----------------------------------------------------------
 # Graph animal types over time
-tmp <- dat_v1[, .(type_count = sum(quantity)),
+tmp <- dat_v1[, .(animal_count = sum(quantity)),
               by = .(report_year, animal_type)]
-
 tmp <- tmp[order(tmp$animal_type, tmp$report_year), ]
 
-ggplot(data = tmp, aes(x = report_year,  y = type_count, fill = animal_type)) +
+write.csv(tmp, "data/processed/01_(animal counts by year and type).csv", row.names = F)
+
+ggplot(data = tmp, aes(x = report_year,  y = animal_count, fill = animal_type)) +
   geom_bar(stat = 'identity') + ggtitle("decapitation of animal types over the years")
 
 # Graph animal types vs. body_part types
-tmp <- dat_v1[, .(count = sum(quantity)),
+tmp <- dat_v1[, .(animal_count = sum(quantity)),
               by = .(animal_type, body_part_type)]
 tmp <- tmp[order(tmp$animal_type, tmp$body_part_type), ]
 
-ggplot(data = tmp, aes(x = body_part_type,  y = count, fill = animal_type)) +
+write.csv(tmp, "data/processed/02_(animal counts by body parts and animal type).csv", row.names = F)
+
+ggplot(data = tmp, aes(x = body_part_type,  y = animal_count, fill = animal_type)) +
   geom_bar(stat = 'identity') + ggtitle("body parts of animals") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # Body part types over the years
-tmp <- dat_v1[, .(count = sum(quantity)),
+tmp <- dat_v1[, .(animal_count = sum(quantity)),
               by = .(report_year, body_part_type)]
 tmp <- tmp[order(tmp$body_part_type, tmp$report_year), ]
 
-ggplot(data = tmp, aes(x = report_year,  y = count, fill = body_part_type)) +
+write.csv(tmp, "data/processed/03_(animal counts by year and body parts).csv", row.names = F)
+
+ggplot(data = tmp, aes(x = report_year,  y = animal_count, fill = body_part_type)) +
   geom_bar(stat = 'identity') + ggtitle("body parts of animals over the years") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Map lat long
+map <- get_map(location = c(lon = mean(dat_v1$lng), lat = mean(dat_v1$lat)), zoom = 10,
+               maptype = "roadmap", scale = 2, color = 'bw')
+ggmap(map) + geom_point(data = dat_v1, aes(x = lng, y = lat, colour = animal_type, size = quantity)) +
+  scale_size_continuous(range = c(3, 10), breaks = c(1, 3, 6, 12))
+
+map <- get_map(location = c(lon = mean(dat_v1$lng), lat = mean(dat_v1$lat)), zoom = 10,
+                      maptype = "roadmap", scale = 2, color = 'bw')
+ggmap(map) + geom_point(data = dat_v1, aes(x = lng, y = lat, colour = body_part_type, size = quantity)) +
+  scale_size_continuous(range = c(3, 10), breaks = c(1, 3, 6, 12))
+
+# Map count by city
+tmp <- dat_v1[, .(animal_count = sum(quantity)),
+              by = .(site_borough)]
+tmp1 <- dat_v1[, .(animal_count = sum(quantity)),
+               by = .(site_borough, report_year)]
+tmp1 <- tmp1[order(tmp1$report_year, tmp1$site_borough), ]
+
+write.csv(tmp1, "data/processed/05_(animal count by year and city).csv", row.names = F)
+
+ggplot(data = tmp1, aes(x = report_year,  y = animal_count, fill = site_borough)) +
+  geom_bar(stat = 'identity') + ggtitle("body parts of animals over the years") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+tmp <- dat_v1[, .(case_count = .N),
+              by = .(site_borough)]
+tmp1 <- dat_v1[, .(case_count = .N),
+               by = .(site_borough, report_year)]
+tmp1 <- tmp1[order(tmp1$report_year, tmp1$site_borough), ]
+
+write.csv(tmp1, "data/processed/05_(case count by year and city).csv", row.names = F)
+
+# STEP 04: Analysis -----------------------------------------------------------
+
